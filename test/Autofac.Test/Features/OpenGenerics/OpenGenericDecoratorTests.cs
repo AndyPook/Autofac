@@ -4,7 +4,29 @@ using Xunit;
 
 namespace Autofac.Test.Features.OpenGenerics
 {
-    public class OpenGenericDecoratorTests
+    public class OpenGenericDecoratorContainerTests : OpenGenericDecoratorTests
+    {
+        public OpenGenericDecoratorContainerTests()
+        {
+            var builder = new ContainerBuilder();
+
+            Configure(builder);
+
+            _container = builder.Build();
+        }
+    }
+
+    public class OpenGenericDecoratorScopeTests : OpenGenericDecoratorTests
+    {
+        public OpenGenericDecoratorScopeTests()
+        {
+            var root = new ContainerBuilder().Build();
+
+            _container = root.BeginLifetimeScope(Configure);
+        }
+    }
+
+    public abstract class OpenGenericDecoratorTests
     {
         public interface IService<T>
         {
@@ -76,15 +98,14 @@ namespace Autofac.Test.Features.OpenGenerics
 
         private const string ParameterValue = "Abc";
 
-        private IContainer _container;
+        protected ILifetimeScope _container;
 
-        public OpenGenericDecoratorTests()
+        protected void Configure(ContainerBuilder builder)
         {
             // Order is:
             //    A -> B(p) -> ImplementorA
             //    A -> B(p) -> ImplementorB
             //    A -> B(p) -> StringImplementor (string only)
-            var builder = new ContainerBuilder();
 
             builder.RegisterType<StringImplementor>()
                 .Named<IService<string>>("implementor");
@@ -99,8 +120,6 @@ namespace Autofac.Test.Features.OpenGenerics
                 .WithParameter("parameter", ParameterValue);
 
             builder.RegisterGenericDecorator(typeof(DecoratorA<>), typeof(IService<>), fromKey: "b");
-
-            _container = builder.Build();
         }
 
         [Fact]
